@@ -22,7 +22,7 @@ abstract class ServiceBuilder {
             }
             synchronized(this) {
                 val instance = Retrofit.Builder()
-                    .baseUrl("yourawesomeurl.io/")
+                    .baseUrl("your.awesome/url.io/")
                     .addConverterFactory(GsonConverterFactory.create())
                     .client(OkHttpClient.Builder().build())
                     .build()

@@ -1,6 +1,6 @@
 package live.tek.form_data
 
-import android.content.ContentResolver
+import android.app.Activity
 import android.content.Intent
 import android.graphics.ImageDecoder
 import android.net.Uri
@@ -11,6 +11,7 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.github.dhaval2404.imagepicker.ImagePicker
 import live.tek.form_data.network.FileUtil
 import live.tek.form_data.network.ServiceBuilder
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -26,7 +27,7 @@ import java.lang.Exception
 
 class MainActivity : AppCompatActivity() {
     private lateinit var imageView: ImageView
-    private val REQUEST_GALLERY = 2121
+    private  val requestGallery = 2121
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -34,11 +35,10 @@ class MainActivity : AppCompatActivity() {
         imageView = findViewById<ImageView>(R.id.imgSelected)
 
         button.setOnClickListener {
-            val intent = Intent()
-            intent.type = "image/*"
-            intent.action = Intent.ACTION_GET_CONTENT
-            startActivityForResult(Intent.createChooser(intent, "open gallery"), REQUEST_GALLERY)
+
+            ImagePicker.with(this).start(requestGallery)
         }
+
 
 
     }
@@ -46,25 +46,17 @@ class MainActivity : AppCompatActivity() {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (resultCode == RESULT_OK) {
-            if (requestCode == REQUEST_GALLERY) {
-                val uri = data?.data
-                try {
-                    uri?.let {
-                        setImage(it)
-                    }
+        if (resultCode == Activity.RESULT_OK) {
+            if (requestCode == requestGallery && data != null) {
+                val fileUri = data.data
+                setImage(fileUri!!)
+                ImagePicker.getFile(data)?.let { doRequest(it,fileUri) } ?: run{ Toast.makeText(applicationContext,"Ops. Something went wrong.",Toast.LENGTH_SHORT)}
 
-                } catch (ex: Exception) {
-                    ex.printStackTrace()
-                }
-
-                uri?.let {
-                    doRequest(it)
-                }
 
             }
         }
-    }
+     }
+
 
     private fun setImage(uri: Uri) {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
@@ -80,8 +72,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun doRequest(uri: Uri) {
-        val file = File(FileUtil.getPath(this, uri))
+    private fun doRequest(file:File,uri: Uri) {
         val requestFile = file.asRequestBody(contentResolver.getType(uri)?.toMediaTypeOrNull())
         val body = MultipartBody.Part.createFormData("image", file.name, requestFile)
         val serviceBuilder = ServiceBuilder.myApi
